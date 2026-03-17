@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zeladoria Natividade - Painel Operacional</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        /* Estilos visuais para deixar o painel moderno */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            height: 100vh;
+            background-color: #f4f7f6;
+        }
+
+        /* Barra Lateral (Menu de Controle) */
+        #sidebar {
+            width: 320px;
+            background-color: #1e293b;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            box-shadow: 4px 0 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        #sidebar h1 {
+            font-size: 22px;
+            margin-bottom: 5px;
+            color: #38bdf8;
+        }
+
+        #sidebar p {
+            font-size: 14px;
+            color: #94a3b8;
+            margin-top: 0;
+            margin-bottom: 30px;
+        }
+
+        /* Cartões de Resumo */
+        .card {
+            background-color: #334155;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 5px solid;
+        }
+
+        .card.novo { border-color: #ef4444; } /* Vermelho */
+        .card.andamento { border-color: #eab308; } /* Amarelo */
+        .card.resolvido { border-color: #22c55e; } /* Verde */
+
+        .card h3 {
+            margin: 0 0 5px 0;
+            font-size: 16px;
+        }
+
+        .card span {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        /* Área do Mapa */
+        #map-container {
+            flex-grow: 1;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <h1>Zeladoria Natividade</h1>
+        <p>Centro de Controle Operacional</p>
+
+        <div class="card novo">
+            <h3>🔴 Novos Chamados</h3>
+            <span>1</span>
+        </div>
+
+        <div class="card andamento">
+            <h3>🟡 Em Andamento</h3>
+            <span>0</span>
+        </div>
+
+        <div class="card resolvido">
+            <h3>🟢 Resolvidos (Hoje)</h3>
+            <span>0</span>
+        </div>
+    </div>
+
+    <div id="map-container">
+        <div id="map"></div>
+    </div>
+
+    <script>
+        // Coordenadas aproximadas do centro de Natividade da Serra
+        const latNatividade = -23.37
