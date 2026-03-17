@@ -109,4 +109,24 @@
 
     <script>
         // Coordenadas aproximadas do centro de Natividade da Serra
-        const latNatividade = -23.37
+        const latNatividade = -23.3764;
+        const lngNatividade = -45.4431;
+
+        // Inicia o mapa e define o zoom (13 é um bom zoom para ver a cidade e os bairros próximos)
+        const map = L.map('map').setView([latNatividade, lngNatividade], 13);
+
+        // Puxa as imagens de SATÉLITE (usando o Esri World Imagery, gratuito e detalhado)
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            maxZoom: 19,
+            attribution: '© Esri - Zeladoria Natividade'
+        }).addTo(map);
+
+        // Adiciona um "pino de teste" no mapa só para você ver como fica
+        const pinoTeste = L.marker([latNatividade, lngNatividade]).addTo(map);
+        
+        // Adiciona o balãozinho de informação quando clica no pino
+        pinoTeste.bindPopup("<b>🚧 Buraco na Via</b><br>Rua Principal, Centro.<br><i>Enviado há 5 min</i>").openPopup();
+    </script>
+
+</body>
+</html>
