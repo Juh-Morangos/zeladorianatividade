@@ -10,75 +10,22 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+
     <style>
-        /* Estilos visuais para deixar o painel moderno */
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: 'Inter', sans-serif;
-            display: flex;
-            height: 100vh;
-            background-color: #f4f7f6;
-        }
-
-        /* Barra Lateral (Menu de Controle) */
-        #sidebar {
-            width: 320px;
-            background-color: #1e293b;
-            color: white;
-            display: flex;
-            flex-direction: column;
-            padding: 20px;
-            box-shadow: 4px 0 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-        }
-
-        #sidebar h1 {
-            font-size: 22px;
-            margin-bottom: 5px;
-            color: #38bdf8;
-        }
-
-        #sidebar p {
-            font-size: 14px;
-            color: #94a3b8;
-            margin-top: 0;
-            margin-bottom: 30px;
-        }
-
-        /* Cartões de Resumo */
-        .card {
-            background-color: #334155;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            border-left: 5px solid;
-        }
-
-        .card.novo { border-color: #ef4444; } /* Vermelho */
-        .card.andamento { border-color: #eab308; } /* Amarelo */
-        .card.resolvido { border-color: #22c55e; } /* Verde */
-
-        .card h3 {
-            margin: 0 0 5px 0;
-            font-size: 16px;
-        }
-
-        .card span {
-            font-size: 24px;
-            font-weight: bold;
-        }
-
-        /* Área do Mapa */
-        #map-container {
-            flex-grow: 1;
-            position: relative;
-        }
-
-        #map {
-            width: 100%;
-            height: 100%;
-        }
+        body { margin: 0; padding: 0; font-family: 'Inter', sans-serif; display: flex; height: 100vh; background-color: #f4f7f6; }
+        #sidebar { width: 320px; background-color: #1e293b; color: white; display: flex; flex-direction: column; padding: 20px; box-shadow: 4px 0 10px rgba(0,0,0,0.1); z-index: 1000; }
+        #sidebar h1 { font-size: 22px; margin-bottom: 5px; color: #38bdf8; }
+        #sidebar p { font-size: 14px; color: #94a3b8; margin-top: 0; margin-bottom: 30px; }
+        .card { background-color: #334155; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 5px solid; }
+        .card.novo { border-color: #ef4444; }
+        .card.andamento { border-color: #eab308; }
+        .card.resolvido { border-color: #22c55e; }
+        .card h3 { margin: 0 0 5px 0; font-size: 16px; }
+        .card span { font-size: 24px; font-weight: bold; }
+        #map-container { flex-grow: 1; position: relative; }
+        #map { width: 100%; height: 100%; }
     </style>
 </head>
 <body>
@@ -89,7 +36,7 @@
 
         <div class="card novo">
             <h3>🔴 Novos Chamados</h3>
-            <span>1</span>
+            <span id="contador-novos">0</span>
         </div>
 
         <div class="card andamento">
@@ -108,25 +55,50 @@
     </div>
 
     <script>
-        // Coordenadas aproximadas do centro de Natividade da Serra
+        // Configuração do Mapa
         const latNatividade = -23.3764;
         const lngNatividade = -45.4431;
-
-        // Inicia o mapa e define o zoom (13 é um bom zoom para ver a cidade e os bairros próximos)
         const map = L.map('map').setView([latNatividade, lngNatividade], 13);
 
-        // Puxa as imagens de SATÉLITE (usando o Esri World Imagery, gratuito e detalhado)
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             maxZoom: 19,
             attribution: '© Esri - Zeladoria Natividade'
         }).addTo(map);
 
-        // Adiciona um "pino de teste" no mapa só para você ver como fica
-        const pinoTeste = L.marker([latNatividade, lngNatividade]).addTo(map);
-        
-        // Adiciona o balãozinho de informação quando clica no pino
-        pinoTeste.bindPopup("<b>🚧 Buraco na Via</b><br>Rua Principal, Centro.<br><i>Enviado há 5 min</i>").openPopup();
-    </script>
+        // --- INTEGRAÇÃO COM FIREBASE ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDpHbkothMTFftxJiysj-kYu0ar8ZiYSNo",
+            authDomain: "zeladoria-natividade2.firebaseapp.com",
+            databaseURL: "https://zeladoria-natividade2-default-rtdb.firebaseio.com",
+            projectId: "zeladoria-natividade2",
+            storageBucket: "zeladoria-natividade2.firebasestorage.app",
+            messagingSenderId: "66356198629",
+            appId: "1:66356198629:web:fa09801ac2a6bf9d60280c"
+        };
 
+        // Inicializa o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        // Variável para contar os chamados
+        let totalNovos = 0;
+
+        // Fica "escutando" a pasta 'chamados' no banco de dados
+        const chamadosRef = database.ref('chamados');
+        chamadosRef.on('child_added', (snapshot) => {
+            const dados = snapshot.val();
+
+            // Quando chega um chamado novo, cria um pino no mapa com as coordenadas exatas
+            const novoPino = L.marker([dados.latitude, dados.longitude]).addTo(map);
+            
+            // Cria o balão de texto do pino
+            novoPino.bindPopup(`<b>🚨 ${dados.problema}</b><br>${dados.descricao}<br><i>Enviado pelo App</i>`);
+
+            // Atualiza o contador na barra lateral
+            totalNovos++;
+            document.getElementById('contador-novos').innerText = totalNovos;
+        });
+
+    </script>
 </body>
 </html>
